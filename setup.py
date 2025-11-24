@@ -19,6 +19,7 @@ setup(
     description="A comprehensive toolkit for analyzing and optimizing neural network efficiency",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    # Note: Repository name contains hyphen prefix (original repository naming)
     url="https://github.com/fryfry33/-Neural-Network-Efficiency-Analyzer",
     packages=find_packages(exclude=["tests", "tests.*", "examples", "examples.*", "docs"]),
     classifiers=[

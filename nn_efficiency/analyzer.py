@@ -63,18 +63,20 @@ class NNEfficiencyAnalyzer:
         else:
             raise ValueError("Could not detect framework. Please specify 'tensorflow' or 'pytorch'")
     
-    def analyze(self, sample_data: np.ndarray, compute_activations: bool = True) -> Dict:
+    def analyze(self, sample_data: np.ndarray, compute_activations: bool = True, verbose: bool = True) -> Dict:
         """
         Perform comprehensive analysis of the neural network
         
         Args:
             sample_data: Representative input data for activation analysis
             compute_activations: Whether to compute activation-based importance
+            verbose: Whether to print progress messages
         
         Returns:
             Dictionary containing analysis results
         """
-        print("🔍 Analyzing neural network efficiency...")
+        if verbose:
+            print("🔍 Analyzing neural network efficiency...")
         
         if self.framework == 'tensorflow':
             self._analyze_tensorflow(sample_data, compute_activations)
@@ -83,7 +85,8 @@ class NNEfficiencyAnalyzer:
         
         self._compute_global_metrics()
         
-        print("✅ Analysis complete!")
+        if verbose:
+            print("✅ Analysis complete!")
         return self.get_summary()
     
     def _analyze_tensorflow(self, sample_data: np.ndarray, compute_activations: bool):

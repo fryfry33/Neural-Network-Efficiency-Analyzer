@@ -105,6 +105,9 @@ class TestVisualizerMock(unittest.TestCase):
     
     def setUp(self):
         """Create mock analyzer with fake data"""
+        # Set random seed for reproducibility
+        np.random.seed(42)
+        
         # Create mock layer analyses
         self.mock_analyzer = type('MockAnalyzer', (), {})()
         self.mock_analyzer.layer_analyses = []
