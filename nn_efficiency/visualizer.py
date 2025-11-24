@@ -146,3 +146,135 @@ class Visualizer:
         
         plt.tight_layout()
         plt.show()
+    
+    @staticmethod
+    def plot_neural_pathways(analyzer: 'NNEfficiencyAnalyzer', figsize=(14, 8)):
+        """
+        Visualize the most important neural pathways through the network
+        
+        Args:
+            analyzer: NNEfficiencyAnalyzer instance with computed pathways
+            figsize: Figure size
+        """
+        # Compute pathways if not already done
+        if analyzer.neural_pathways is None:
+            analyzer.compute_neural_pathways(top_k=10)
+        
+        pathways_data = analyzer.neural_pathways
+        
+        if not pathways_data.get('pathways'):
+            print("No pathway data available. Need at least 2 dense/linear layers.")
+            return
+        
+        fig, axes = plt.subplots(1, len(pathways_data['pathways']), figsize=figsize)
+        if len(pathways_data['pathways']) == 1:
+            axes = [axes]
+        
+        for idx, pathway_segment in enumerate(pathways_data['pathways']):
+            ax = axes[idx]
+            
+            # Create a simplified network diagram showing pathways
+            importances = pathway_segment['relative_importance']
+            indices = pathway_segment['pathway_indices']
+            
+            # Plot as bars showing relative importance
+            colors = plt.cm.RdYlGn(np.array(importances) / max(importances))
+            bars = ax.barh(range(len(indices)), importances, color=colors, edgecolor='black')
+            
+            ax.set_yticks(range(len(indices)))
+            ax.set_yticklabels([f'Neuron {i}' for i in indices])
+            ax.set_xlabel('Relative Pathway Importance')
+            ax.set_title(f'{pathway_segment["from_layer"]} → {pathway_segment["to_layer"]}',
+                        fontsize=10, fontweight='bold')
+            ax.grid(True, axis='x', alpha=0.3)
+            
+            # Add percentage labels
+            for i, (bar, imp) in enumerate(zip(bars, importances)):
+                width = bar.get_width()
+                ax.text(width, bar.get_y() + bar.get_height()/2.,
+                       f'{imp*100:.1f}%', ha='left', va='center', fontsize=8)
+        
+        plt.tight_layout()
+        plt.suptitle('🔍 Most Important Neural Pathways', fontsize=14, fontweight='bold', y=1.02)
+        plt.show()
+    
+    @staticmethod
+    def plot_pathway_flow(analyzer: 'NNEfficiencyAnalyzer', figsize=(12, 8)):
+        """
+        Create a flow diagram showing information flow through important pathways
+        
+        Args:
+            analyzer: NNEfficiencyAnalyzer instance with computed pathways
+            figsize: Figure size
+        """
+        # Compute pathways if not already done
+        if analyzer.neural_pathways is None:
+            analyzer.compute_neural_pathways(top_k=5)
+        
+        pathways_data = analyzer.neural_pathways
+        
+        if not pathways_data.get('pathways'):
+            print("No pathway data available. Need at least 2 dense/linear layers.")
+            return
+        
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Create a layer-by-layer visualization
+        num_layers = len(analyzer.layer_analyses)
+        layer_positions = np.linspace(0, 10, num_layers)
+        
+        # Plot layers as vertical lines with circles for neurons
+        # Find max neurons, with fallback if no Dense/Linear layers exist
+        dense_layers = [la for la in analyzer.layer_analyses if la.layer_type in ['Dense', 'Linear']]
+        if dense_layers:
+            max_neurons = max(la.importance_matrix.shape[-1] if len(la.importance_matrix.shape) > 1 
+                             else 10 for la in dense_layers)
+        else:
+            max_neurons = 10  # Default fallback
+        
+        for i, (pos, layer) in enumerate(zip(layer_positions, analyzer.layer_analyses)):
+            if layer.layer_type in ['Dense', 'Linear']:
+                num_neurons = layer.importance_matrix.shape[-1] if len(layer.importance_matrix.shape) > 1 else 5
+                neuron_positions = np.linspace(-3, 3, min(num_neurons, 10))
+                
+                # Draw neurons
+                ax.scatter([pos] * len(neuron_positions), neuron_positions, 
+                          s=100, c='steelblue', alpha=0.6, edgecolors='black', linewidths=1.5, zorder=3)
+                
+                # Add layer label
+                ax.text(pos, -4, layer.name, ha='center', va='top', fontsize=9, fontweight='bold')
+        
+        # Draw pathway connections
+        for pathway_idx, pathway_segment in enumerate(pathways_data['pathways']):
+            # Find layer indices with fallback for safety
+            from_layer_idx = next((i for i, la in enumerate(analyzer.layer_analyses) 
+                                  if la.name == pathway_segment['from_layer']), None)
+            if from_layer_idx is None:
+                continue  # Skip if layer not found
+            to_layer_idx = from_layer_idx + 1
+            
+            if to_layer_idx < num_layers:
+                x_from = layer_positions[from_layer_idx]
+                x_to = layer_positions[to_layer_idx]
+                
+                # Draw top pathways
+                for i, (neuron_idx, importance) in enumerate(zip(pathway_segment['pathway_indices'][:5], 
+                                                                 pathway_segment['relative_importance'][:5])):
+                    # Simple visualization: draw lines for top pathways
+                    y_pos = 2 - i * 1
+                    alpha = min(0.8, importance * 5)  # Scale alpha by importance
+                    linewidth = max(1, importance * 10)
+                    
+                    ax.plot([x_from, x_to], [y_pos, y_pos], 
+                           linewidth=linewidth, alpha=alpha, color='red', zorder=1)
+        
+        ax.set_xlim(-1, 11)
+        ax.set_ylim(-5, 4)
+        ax.set_xlabel('Network Depth', fontsize=12)
+        ax.set_ylabel('Neural Activation Space', fontsize=12)
+        ax.set_title('🔍 Neural Pathway Flow Visualization', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.2)
+        ax.set_aspect('equal')
+        
+        plt.tight_layout()
+        plt.show()
