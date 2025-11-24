@@ -63,7 +63,7 @@ Ce projet vise à répondre aux questions critiques :
 
 ```bash
 # Clone le repository
-git clone https://github.com/fryfry33/nn-efficiency-analyzer.git
+git clone https://github.com/fryfry33/-Neural-Network-Efficiency-Analyzer.git
 cd nn-efficiency-analyzer
 
 # Installation des dépendances
