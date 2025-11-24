@@ -349,6 +349,31 @@ class NNEfficiencyAnalyzer:
             print(f"\n  ✅ High Sparsity Detected ({self.global_metrics['global_sparsity_1e-2']*100:.1f}%)")
             print(f"     → Excellent candidate for weight pruning")
             print(f"     → Potential {self.global_metrics['compression_potential']*100:.1f}% compression")
+        
+        # FLOPs-based recommendations
+        if self.global_metrics.get('total_inference_flops', 0) > 0:
+            total_flops = self.global_metrics['total_inference_flops']
+            
+            # Find most expensive layers
+            expensive_layers = sorted(
+                [(la.name, la.metrics.get('inference_flops', 0)) for la in self.layer_analyses],
+                key=lambda x: x[1],
+                reverse=True
+            )[:3]
+            
+            if expensive_layers[0][1] > 0:
+                print(f"\n  💰 Computational Cost Analysis:")
+                print(f"     Most expensive layers by FLOPs:")
+                for name, flops in expensive_layers:
+                    if flops > 0:
+                        pct = (flops / total_flops) * 100
+                        print(f"     - '{name}': {self._format_flops(flops)} ({pct:.1f}% of total)")
+                
+                # Estimate potential savings
+                potential_savings = self.global_metrics['compression_potential'] * total_flops
+                if potential_savings > 0:
+                    print(f"\n     → Potential FLOPs reduction: {self._format_flops(potential_savings)}")
+                    print(f"     → Expected speedup: {1/(1-self.global_metrics['compression_potential']):.2f}x")
     
     def compute_neural_pathways(self, top_k: int = 10) -> Dict:
         """

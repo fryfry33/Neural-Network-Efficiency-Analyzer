@@ -33,12 +33,26 @@ Ce projet vise à répondre aux questions critiques :
 - **Analyse de sparsité** : Distribution des poids faibles
 - **Couverture Top-K** : Concentration de l'importance
 
+### 💰 Calcul des FLOPs (NOUVEAU)
+- **Estimation du coût computationnel** : Calcul automatique des FLOPs pour l'entraînement et l'inférence
+- **Analyse par couche** : FLOPs détaillés pour chaque couche Dense/Linear et Conv2D
+- **Métriques globales** : Coût total du modèle en GFLOPs/TFLOPs
+- **Support complet** : Compatibilité TensorFlow et PyTorch
+
+### 🔍 Visualisation des Chemins Neuronaux (NOUVEAU)
+- **Identification des pathways** : Détection automatique des chemins neuronaux les plus importants
+- **Visualisation interactive** : Graphiques montrant le flux d'information dans le réseau
+- **Analyse de connexions** : Importance relative des connexions entre couches
+- **Top-K pathways** : Focus sur les neurones les plus contributifs
+
 ### 🎨 Visualisations Riches
 - Distribution d'importance par couche
 - Comparaison multi-métriques
 - Diagrammes radar d'efficacité
 - Analyse de sensibilité au pruning
 - Courbes d'importance cumulée
+- **Visualisation des chemins neuronaux** (nouveau)
+- **Diagramme de flux d'information** (nouveau)
 
 ### ⚡ Support Multi-Framework
 - **TensorFlow/Keras** : Modèles Sequential et Functional API
@@ -92,14 +106,21 @@ analyzer = NNEfficiencyAnalyzer(model, framework='tensorflow')
 # Effectuer l'analyse
 results = analyzer.analyze(X_train, compute_activations=True)
 
-# Afficher le rapport
+# Afficher le rapport (inclut maintenant les FLOPs)
 analyzer.print_report()
+
+# Calculer les chemins neuronaux importants
+pathways = analyzer.compute_neural_pathways(top_k=10)
 
 # Créer des visualisations personnalisées
 viz = Visualizer()
 viz.plot_layer_importance_distribution(analyzer)
 viz.plot_pruning_sensitivity(analyzer)
 viz.plot_efficiency_radar(analyzer, layer_idx=0)
+
+# Nouvelles visualisations
+viz.plot_neural_pathways(analyzer)  # Visualiser les chemins neuronaux
+viz.plot_pathway_flow(analyzer)      # Diagramme de flux d'information
 ```
 
 ### Exemple avec TensorFlow
@@ -156,6 +177,10 @@ analyzer = quick_analyze(model, X_train, framework='pytorch')
   Compression Potential: 73.83%
   Average Layer Redundancy: 68.42%
 
+💰 COMPUTATIONAL COST (FLOPs):
+  Inference FLOPs: 21.76 KFLOPs
+  Training FLOPs: 87.04 KFLOPs
+
 📋 LAYER-BY-LAYER ANALYSIS:
 
   🔸 hidden_1 (Dense)
@@ -164,6 +189,8 @@ analyzer = quick_analyze(model, X_train, framework='pytorch')
      Redundancy: 71.58%
      Sparsity (<1e-2): 43.27%
      Gini Coefficient: 0.742
+     Inference FLOPs: 5.38 KFLOPs
+     Training FLOPs: 21.50 KFLOPs
 
 💡 OPTIMIZATION RECOMMENDATIONS:
 
@@ -241,6 +268,8 @@ viz.plot_pruning_sensitivity(analyzer)
 
 ## 🔬 Méthodologie
 
+### Calcul d'Importance des Poids
+
 L'importance d'un poids est calculée comme :
 
 ```
@@ -252,6 +281,26 @@ Pour chaque couche :
 2. **Magnitude des poids** : Valeur absolue de chaque poids
 3. **Contribution** : Produit de la magnitude et de l'activation moyenne
 4. **Normalisation** : Division par la somme totale pour obtenir une distribution
+
+### Calcul des FLOPs
+
+Le nombre d'opérations en virgule flottante (FLOPs) est calculé pour chaque type de couche :
+
+**Couches Dense/Linear** :
+- Inférence : `batch_size × output_size × (2 × input_size - 1 + bias)`
+- Entraînement : ≈ 4× inférence (forward + backward + update)
+
+**Couches Conv2D** :
+- Inférence : `batch_size × output_h × output_w × out_channels × (2 × kernel_h × kernel_w × in_channels - 1 + bias)`
+- Entraînement : ≈ 4× inférence
+
+### Chemins Neuronaux
+
+Les chemins neuronaux importants sont identifiés en :
+1. **Calculant l'importance** de chaque neurone dans les couches successives
+2. **Multipliant les importances** des neurones connectés entre couches
+3. **Classant les pathways** par importance relative
+4. **Visualisant les top-K** chemins les plus contributifs
 
 ## 🤝 Contribution
 
@@ -274,11 +323,12 @@ Les contributions sont les bienvenues ! N'hésitez pas à :
 
 - [ ] Ajout du support BatchNorm et Dropout
 - [ ] Implémentation de structured pruning
-- [ ] Calcul automatique des FLOPs (actuellement en développement)
+- [x] Calcul automatique des FLOPs ✅ **COMPLÉTÉ**
+- [x] Visualisation des chemins neuronaux ✅ **COMPLÉTÉ**
 - [ ] Export vers formats optimisés (TFLite, ONNX)
 - [ ] Comparaison automatique de modèles
 - [ ] Interface CLI pour analyse rapide
-- [ ] Tests unitaires complets
+- [x] Tests unitaires pour FLOPs ✅ **COMPLÉTÉ**
 
 ## 📄 License
 
