@@ -4,7 +4,7 @@ Metrics calculations for neural network efficiency analysis
 """
 
 import numpy as np
-from typing import Dict
+from typing import Dict, Tuple, Optional
 
 
 def compute_entropy_metrics(importance_matrix: np.ndarray) -> Dict:
@@ -117,12 +117,106 @@ def compute_statistical_metrics(importance_matrix: np.ndarray) -> Dict:
     }
 
 
-def compute_all_metrics(importance_matrix: np.ndarray) -> Dict:
+def compute_flops_dense(input_size: int, output_size: int, batch_size: int = 1, 
+                        has_bias: bool = True) -> Dict:
+    """
+    Compute FLOPs for a Dense/Linear layer
+    
+    Args:
+        input_size: Number of input features
+        output_size: Number of output neurons
+        batch_size: Batch size (default: 1 for single sample inference)
+        has_bias: Whether the layer has bias terms
+        
+    Returns:
+        Dictionary containing FLOPs for inference and training
+    """
+    # Inference FLOPs: matrix multiplication + bias addition
+    # For each output neuron: input_size multiplications + input_size-1 additions
+    # Plus bias addition if present
+    inference_multiply = batch_size * output_size * input_size
+    inference_add = batch_size * output_size * (input_size - 1)
+    if has_bias:
+        inference_add += batch_size * output_size
+    inference_flops = inference_multiply + inference_add
+    
+    # Training FLOPs (approximate): forward pass + backward pass + weight update
+    # Forward: same as inference
+    # Backward: gradient computation (similar to forward pass)
+    # Weight update: parameter updates
+    forward_flops = inference_flops
+    backward_flops = 2 * forward_flops  # Approximate: gradient w.r.t input and weights
+    update_flops = batch_size * (input_size * output_size + (output_size if has_bias else 0))
+    training_flops = forward_flops + backward_flops + update_flops
+    
+    return {
+        'inference_flops': inference_flops,
+        'training_flops': training_flops,
+        'inference_flops_per_sample': inference_flops / batch_size,
+        'training_flops_per_sample': training_flops / batch_size,
+    }
+
+
+def compute_flops_conv2d(input_shape: Tuple[int, int, int], kernel_size: Tuple[int, int],
+                          in_channels: int, out_channels: int, stride: int = 1,
+                          padding: int = 0, batch_size: int = 1, has_bias: bool = True) -> Dict:
+    """
+    Compute FLOPs for a Conv2D layer
+    
+    Args:
+        input_shape: Input spatial dimensions (height, width, channels)
+        kernel_size: Kernel dimensions (height, width)
+        in_channels: Number of input channels
+        out_channels: Number of output channels
+        stride: Stride value
+        padding: Padding value
+        batch_size: Batch size
+        has_bias: Whether the layer has bias terms
+        
+    Returns:
+        Dictionary containing FLOPs for inference and training
+    """
+    input_h, input_w = input_shape[0], input_shape[1]
+    kernel_h, kernel_w = kernel_size
+    
+    # Calculate output dimensions
+    output_h = (input_h + 2 * padding - kernel_h) // stride + 1
+    output_w = (input_w + 2 * padding - kernel_w) // stride + 1
+    
+    # Inference FLOPs
+    # For each output position: kernel_h * kernel_w * in_channels multiplications + additions
+    ops_per_output = kernel_h * kernel_w * in_channels
+    num_outputs = batch_size * output_h * output_w * out_channels
+    
+    inference_multiply = num_outputs * ops_per_output
+    inference_add = num_outputs * (ops_per_output - 1)
+    if has_bias:
+        inference_add += num_outputs
+    inference_flops = inference_multiply + inference_add
+    
+    # Training FLOPs (approximate)
+    forward_flops = inference_flops
+    backward_flops = 3 * forward_flops  # Approximate: more complex due to convolution
+    num_params = kernel_h * kernel_w * in_channels * out_channels + (out_channels if has_bias else 0)
+    update_flops = batch_size * num_params
+    training_flops = forward_flops + backward_flops + update_flops
+    
+    return {
+        'inference_flops': inference_flops,
+        'training_flops': training_flops,
+        'inference_flops_per_sample': inference_flops / batch_size,
+        'training_flops_per_sample': training_flops / batch_size,
+        'output_shape': (output_h, output_w, out_channels),
+    }
+
+
+def compute_all_metrics(importance_matrix: np.ndarray, flops_info: Optional[Dict] = None) -> Dict:
     """
     Compute all metrics for a given importance matrix
     
     Args:
         importance_matrix: Matrix of importance values
+        flops_info: Optional dictionary containing FLOPs information
         
     Returns:
         Dictionary containing all metrics
@@ -139,5 +233,9 @@ def compute_all_metrics(importance_matrix: np.ndarray) -> Dict:
     
     # Compute redundancy score
     metrics['redundancy_score'] = 1 - metrics['normalized_entropy']
+    
+    # Add FLOPs information if provided
+    if flops_info:
+        metrics.update(flops_info)
     
     return metrics
