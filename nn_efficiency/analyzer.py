@@ -384,6 +384,14 @@ class NNEfficiencyAnalyzer:
             
         Returns:
             Dictionary containing pathway information
+            
+        Note:
+            This analysis assumes that output neurons from one layer connect directly
+            to input neurons of the next layer with a 1:1 mapping (typical for dense
+            networks). The pathway importance is calculated as the element-wise product
+            of output importance from the first layer and input importance to the second
+            layer. This works well for fully-connected layers but may not capture
+            complex connection patterns in other architectures.
         """
         if len(self.layer_analyses) < 2:
             return {'pathways': [], 'message': 'Need at least 2 layers for pathway analysis'}
@@ -414,12 +422,19 @@ class NNEfficiencyAnalyzer:
                         # Get top-k pathways
                         top_indices = np.argsort(pathway_importance)[-top_k:][::-1]
                         
+                        # Calculate relative importance (prevent division by zero)
+                        total_importance = np.sum(pathway_importance)
+                        if total_importance > 0:
+                            relative_imp = (pathway_importance[top_indices] / total_importance).tolist()
+                        else:
+                            relative_imp = [0.0] * len(top_indices)
+                        
                         pathways.append({
                             'from_layer': layer1.name,
                             'to_layer': layer2.name,
                             'pathway_indices': top_indices.tolist(),
                             'pathway_importances': pathway_importance[top_indices].tolist(),
-                            'relative_importance': (pathway_importance[top_indices] / np.sum(pathway_importance)).tolist()
+                            'relative_importance': relative_imp
                         })
         
         self.neural_pathways = {

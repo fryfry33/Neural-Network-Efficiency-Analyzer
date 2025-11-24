@@ -130,6 +130,13 @@ def compute_flops_dense(input_size: int, output_size: int, batch_size: int = 1,
         
     Returns:
         Dictionary containing FLOPs for inference and training
+        
+    Note:
+        Training FLOPs are approximated using a simplified model:
+        - Forward pass = inference FLOPs
+        - Backward pass ≈ 2× forward pass (gradient w.r.t. input and weights)
+        - Weight update is included but optimizer-specific operations (e.g., Adam momentum)
+          are not accounted for. Actual training costs may be higher with complex optimizers.
     """
     # Inference FLOPs: matrix multiplication + bias addition
     # For each output neuron: input_size multiplications + input_size-1 additions
@@ -175,6 +182,12 @@ def compute_flops_conv2d(input_shape: Tuple[int, int, int], kernel_size: Tuple[i
         
     Returns:
         Dictionary containing FLOPs for inference and training
+        
+    Note:
+        Training FLOPs are approximated using a 3× multiplier for backward pass
+        complexity relative to forward pass. The actual computational cost depends on
+        implementation details and whether gradients are computed for weights, inputs,
+        or both. This is a reasonable approximation for most scenarios.
     """
     input_h, input_w = input_shape[0], input_shape[1]
     kernel_h, kernel_w = kernel_size

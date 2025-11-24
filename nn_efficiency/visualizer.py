@@ -224,8 +224,13 @@ class Visualizer:
         layer_positions = np.linspace(0, 10, num_layers)
         
         # Plot layers as vertical lines with circles for neurons
-        max_neurons = max(la.importance_matrix.shape[-1] if len(la.importance_matrix.shape) > 1 
-                         else 10 for la in analyzer.layer_analyses if la.layer_type in ['Dense', 'Linear'])
+        # Find max neurons, with fallback if no Dense/Linear layers exist
+        dense_layers = [la for la in analyzer.layer_analyses if la.layer_type in ['Dense', 'Linear']]
+        if dense_layers:
+            max_neurons = max(la.importance_matrix.shape[-1] if len(la.importance_matrix.shape) > 1 
+                             else 10 for la in dense_layers)
+        else:
+            max_neurons = 10  # Default fallback
         
         for i, (pos, layer) in enumerate(zip(layer_positions, analyzer.layer_analyses)):
             if layer.layer_type in ['Dense', 'Linear']:
@@ -241,8 +246,11 @@ class Visualizer:
         
         # Draw pathway connections
         for pathway_idx, pathway_segment in enumerate(pathways_data['pathways']):
-            from_layer_idx = next(i for i, la in enumerate(analyzer.layer_analyses) 
-                                 if la.name == pathway_segment['from_layer'])
+            # Find layer indices with fallback for safety
+            from_layer_idx = next((i for i, la in enumerate(analyzer.layer_analyses) 
+                                  if la.name == pathway_segment['from_layer']), None)
+            if from_layer_idx is None:
+                continue  # Skip if layer not found
             to_layer_idx = from_layer_idx + 1
             
             if to_layer_idx < num_layers:
