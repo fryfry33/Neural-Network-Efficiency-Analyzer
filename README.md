@@ -284,17 +284,10 @@ Les contributions sont les bienvenues ! N'hésitez pas à :
 
 Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
-## 👤 Auteur
-
-**Votre Nom**
-- GitHub: [@votre-username](https://github.com/votre-username)
-- LinkedIn: [Votre Profil](https://linkedin.com/in/votre-profil)
-
 ## 🙏 Remerciements
 
 - Inspiré par les recherches sur le pruning (Han et al., LeCun et al.)
 - Communauté TensorFlow et PyTorch pour les excellentes bibliothèques
-- Papers de référence : "Learning both Weights and Connections", "The Lottery Ticket Hypothesis"
 
 ## 📊 Résultats de Recherche
 
