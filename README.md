@@ -64,7 +64,7 @@ Ce projet vise à répondre aux questions critiques :
 ```bash
 # Clone le repository
 git clone https://github.com/fryfry33/-Neural-Network-Efficiency-Analyzer.git
-cd nn-efficiency-analyzer
+cd -Neural-Network-Efficiency-Analyzer
 
 # Installation des dépendances
 pip install -r requirements.txt
